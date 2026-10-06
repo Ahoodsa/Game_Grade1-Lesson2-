@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مغامرة أجزاء الحاسوب - الصف الأول</title>
+    <!-- خط Tajawal من Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <!-- مكتبة Three.js ثلاثية الأبعاد -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0c1222;
+            --panel-bg: #1a2340;
+            --panel-border: #2c3a63;
+            --gold: #e8a33d;
+            --cyan: #5fd4e8;
+            --green: #4fd88a;
+            --red: #ef5a6f;
+            --purple: #b18cf0;
+            --text-light: #ffffff;
+            --text-muted: #a0aec0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(rgba(44, 58, 99, 0.4) 1px, transparent 0);
+            background-size: 24px 24px;
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 560px;
+            min-height: 90vh;
+            background-color: rgba(12, 18, 34, 0.95);
+            border: 2px solid var(--panel-border);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Top Bar Progress */
+        .top-bar {
+            background-color: var(--panel-bg);
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--panel-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-badge {
+            background: var(--gold);
+            color: #000;
+            font-weight: bold;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .station-indicator {
+            font-size: 0.95rem;
+            color: var(--cyan);
+            font-weight: bold;
+        }
+
+        /* Screen Wrapper */
+        .screen {
+            display: none;
+            flex: 1;
+            padding: 20px;
+            flex-direction: column;
+            justify-content: space-between;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Buttons */
+        .btn {
+            background-color: var(--gold);
+            color: #1a1a1a;
+            border: none;
+            padding: 14px 24px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.1s, background-color 0.2s;
+            box-shadow: 0 4px 12px rgba(232, 163, 61, 0.3);
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background-color: var(--panel-border);
+            color: #fff;
+            box-shadow: none;
+        }
+
+        /* Cards and Elements */
+        .card {
+            background: var(--panel-bg);
+            border: 1.5px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .title-large {
+            font-size: 1.8rem;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 10px;
+            font-weight: 900;
+        }
+
+        .title-medium {
+            font-size: 1.3rem;
+            color: var(--cyan);
+            margin-bottom: 8px;
+        }
+
+        /* Start Screen */
+        .start-list {
+            list-style: none;
+            margin: 15px 0;
+        }
+
+        .start-list li {
+            background: rgba(255,255,255,0.05);
+            margin-bottom: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border-right: 4px solid var(--cyan);
+            font-size: 1rem;
+        }
+
+        /* 3D Canvas / SVG Box */
+        .visual-container {
+            width: 100%;
+            height: 200px;
+            background: #080d1a;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #three-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Terms Cards */
+        .term-badge {
+            display: inline-block;
+            background: var(--purple);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin: 4px;
+        }
+
+        /* Speed Challenge Catch Game */
+        .catch-game-area {
+            width: 100%;
+            height: 260px;
+            background: #080d1a;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px dashed var(--panel-border);
+        }
+
+        .falling-item {
+            position: absolute;
+            background: var(--panel-bg);
+            border: 2px solid var(--cyan);
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Questions */
+        .option-btn {
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            color: #fff;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            text-align: right;
+            font-size: 1.05rem;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .option-btn.correct {
+            background: rgba(79, 216, 138, 0.2);
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .option-btn.wrong {
+            background: rgba(239, 90, 111, 0.2);
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .feedback-box {
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .feedback-box.correct { background: rgba(79, 216, 138, 0.15); color: var(--green); }
+        .feedback-box.wrong { background: rgba(239, 90, 111, 0.15); color: var(--red); }
+
+        /* Stars Rating */
+        .stars-container {
+            font-size: 2.5rem;
+            text-align: center;
+            color: var(--gold);
+            margin: 15px 0;
+        }
+
+        /* Responsive helper */
+        @media (max-width: 480px) {
+            .title-large { font-size: 1.5rem; }
+            .btn { font-size: 1.1rem; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- الشريط العلوي -->
+    <div class="top-bar">
+        <div class="station-indicator" id="top-station-label">مرحباً بك!</div>
+        <div class="score-badge">⭐ <span id="top-score">0</span></div>
+    </div>
+
+    <!-- 1. شاشة البداية -->
+    <div id="screen-start" class="screen active">
+        <div>
+            <h1 class="title-large">🎮 مغامرة أجزاء الحاسوب</h1>
+            <p style="text-align: center; color: var(--text-muted); margin-bottom: 15px;">
+                رحلة تفاعلية ممتعة للتعرف على الحاسوب وأجزائه العجيبة!
+            </p>
+            <div class="card">
+                <div class="title-medium">📍 محطات اللعبة:</div>
+                <ul class="start-list">
+                    <li>1. الأجزاء الأساسية والملحقات</li>
+                    <li>2. توصيل أجزاء الحاسوب</li>
+                    <li>3. تشغيل جهاز الحاسوب</li>
+                    <li>4. إيقاف تشغيل الحاسوب</li>
+                    <li>5. إرشادات الأمن والسلامة</li>
+                </ul>
+            </div>
+        </div>
+        <button class="btn" onclick="game.startLesson()">ابدأ الرحلة 🚀</button>
+    </div>
+
+    <!-- 2أ. شاشة الشرح -->
+    <div id="screen-explain" class="screen">
+        <div>
+            <h2 class="title-medium" id="explain-title">عنوان المحطة</h2>
+            <div class="visual-container" id="visual-box">
+                <canvas id="three-canvas"></canvas>
+            </div>
+            <div class="card" style="margin-top: 10px;">
+                <p id="explain-text" style="font-size: 1.1rem; line-height: 1.5;"></p>
+                <div style="margin-top: 10px;" id="terms-box"></div>
+            </div>
+            <div class="card" style="background: rgba(95, 212, 232, 0.1); border-color: var(--cyan);">
+                <span style="color: var(--cyan); font-weight: bold;">💡 معلومة ذكية:</span>
+                <p id="info-text" style="font-size: 0.95rem; margin-top: 4px;"></p>
+            </div>
+        </div>
+        <button class="btn" onclick="game.goToChallenge()">الانتقال لتحدي السرعة ⚡</button>
+    </div>
+
+    <!-- 2ب. تحدي السرعة -->
+    <div id="screen-challenge" class="screen">
+        <div>
+            <h2 class="title-medium">⚡ تحدي السرعة والالتقاط!</h2>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;">
+                اضغط على الكلمات المطلوبة فقط واجمع النقاط!
+            </p>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold;">
+                <span style="color: var(--cyan);">⏱️ الوقت: <span id="timer-val">15</span>s</span>
+                <span style="color: var(--gold);">🏆 النقاط: <span id="challenge-score-val">0</span></span>
+            </div>
+            <div class="catch-game-area" id="catch-area"></div>
+        </div>
+        <button class="btn btn-secondary" id="btn-skip-challenge" style="display: none;" onclick="game.goToQuestion()">الانتقال للأسئلة ➔</button>
+    </div>
+
+    <!-- 2ج. شاشة الأسئلة -->
+    <div id="screen-question" class="screen">
+        <div>
+            <h2 class="title-medium">❓ سؤال المحطة</h2>
+            <div class="card">
+                <p id="question-text" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 12px;"></p>
+                <div id="options-box"></div>
+                <div id="question-feedback" class="feedback-box" style="display: none;"></div>
+            </div>
+        </div>
+        <button class="btn" id="btn-next-question" style="display: none;" onclick="game.finishStation()">عرض نتيجة المحطة 🌟</button>
+    </div>
+
+    <!-- 2د. شاشة نتيجة المحطة -->
+    <div id="screen-station-result" class="screen">
+        <div style="text-align: center; margin-top: 20px;">
+            <h2 class="title-large">أحسنت يا بطل! 🎉</h2>
+            <p style="color: var(--text-muted);">لقد أكملت هذه المحطة بنجاح</p>
+            <div class="stars-container" id="stars-box">⭐⭐⭐</div>
+            <div class="card">
+                <p id="station-result-summary" style="font-size: 1.1rem;"></p>
+            </div>
+        </div>
+        <button class="btn" onclick="game.nextStation()">المحطة التالية ➔</button>
+    </div>
+
+    <!-- 3. التحدي الأخير (الموقف الحياتي) -->
+    <div id="screen-final-challenge" class="screen">
+        <div>
+            <h2 class="title-medium">🌟 التحدي الأخير: معمل الحاسوب</h2>
+            <div class="card">
+                <p style="font-size: 1.1rem; line-height: 1.5; margin-bottom: 12px;">
+                    دخلت معمل الحاسوب للبدء في حصة تقنية المعلومات، ماذا تفعل أولاً ليعمل جهازك بأمان؟
+                </p>
+                <div id="scenario-options">
+                    <button class="option-btn" onclick="game.answerScenario(1)">أتناول الوجبة والعصير بقرب جهاز الحاسوب ثم أضغط الزر.</button>
+                    <button class="option-btn" onclick="game.answerScenario(2)">أتأكد من نظافة الطاولة، وأشغل زر وحدة النظام ثم زر الشاشة بكل هدوء.</button>
+                    <button class="option-btn" onclick="game.answerScenario(3)">أسحب الأسلاك الكهربائية بقوة للتأكد من أنها متصلة.</button>
+                </div>
+                <div id="scenario-feedback" class="feedback-box" style="display: none;"></div>
+            </div>
+        </div>
+        <button class="btn" id="btn-final-result" style="display: none;" onclick="game.showFinalScreen()">عرض التقرير النهائي 🏆</button>
+    </div>
+
+    <!-- 4. الشاشة النهائية -->
+    <div id="screen-final" class="screen">
+        <div>
+            <h1 class="title-large">🏆 النتيجة النهائية</h1>
+            <div style="text-align: center; margin-bottom: 10px;">
+                <div id="badge-icon" style="font-size: 4rem;">🥇</div>
+                <h2 id="badge-title" style="color: var(--gold);">وسام بطل الحاسوب الذهبي</h2>
+                <p style="color: var(--cyan); font-size: 1.2rem; margin-top: 5px;">مجموع النقاط: <span id="final-total-score">0</span></p>
+            </div>
+            
+            <div class="card">
+                <div class="title-medium">📋 سجل المراجعة والإجابات الخاطئة:</div>
+                <div id="review-list" style="font-size: 0.95rem; line-height: 1.4;"></div>
+            </div>
+        </div>
+        <button class="btn" onclick="game.restartGame()">إعادة اللعب 🔄</button>
+    </div>
+</div>
+
+<script>
+/* ==========================================
+   كائن بيانات الدرس المطور من الملف المرفق
+   ========================================== */
+const LESSON_DATA = {
+    title: "أجزاء جهاز الحاسوب",
+    grade: 1,
+    stations: [
+        {
+            id: 1,
+            title: "الأجزاء الأساسية والملحقات",
+            explain: "يتكون جهاز الحاسوب من أجزاء أساسية ليعمل مثل وحدة النظام والشاشة، وملحقات تساعدنا مثل الفأرة ولوحة المفاتيح والمكبرات والطابعة.",
+            terms: ["وحدة النظام (System Unit)", "الشاشة (Monitor)", "الفأرة (Mouse)", "لوحة المفاتيح (Keyboard)"],
+            info: "وحدة النظام هي أهم جزء في الحاسوب وبدونها لا يمكن للجهاز أن يعمل!",
+            meshType: "box", // شكل ثلاثي الأبعاد
+            targetWords: ["الشاشة", "وحدة النظام", "الفأرة", "الطابعة"],
+            otherWords: ["تفاحة", "كرسي", "شجرة", "سيارة"],
+            question: {
+                text: "أي من الأجزاء التالية يعتبر الجزء الأساسي الذي يربط ويشغل جميع أجهزة الحاسوب؟",
+                options: [
+                    { text: "وحدة النظام (System Unit)", correct: true },
+                    { text: "الطابعة (Printer)", correct: false },
+                    { text: "مكبر الصوت (Speakers)", correct: false }
+                ],
+                explanation: "وحدة النظام هي الأساس الذي ترتبط به وتتحكم بجميع أجزاء الحاسوب الأخرى."
+            }
+        },
+        {
+            id: 2,
+            title: "توصيل أجزاء الحاسوب",
+            explain: "تتصل جميع أجزاء الحاسوب بوحدة النظام (System Unit) بوساطة أسلاك توصيل خاصة.",
+            terms: ["أسلاك التوصيل", "الربط بوحدة النظام"],
+            info: "انتبه دائماً ولا تلمس الأسلاك الكهربائية مباشرة عند توصيل الجهاز!",
+            meshType: "cylinder",
+            targetWords: ["أسلاك التوصيل", "توصيل الشاشة", "ربط الفأرة"],
+            otherWords: ["قلم", "كرة", "ورقة"],
+            question: {
+                text: "أين تتصل وتتجمع جميع أسلاك أجزاء الحاسوب المختلفة؟",
+                options: [
+                    { text: "في وحدة النظام (System Unit)", correct: true },
+                    { text: "في الطابعة مباشرة", correct: false },
+                    { text: "في الكرسي", correct: false }
+                ],
+                explanation: "ترتبط كافة الملحقات والأجزاء بوحدة النظام لكي تبادل البيانات وتعمل بنجاح."
+            }
+        },
+        {
+            id: 3,
+            title: "تشغيل جهاز الحاسوب",
+            explain: "لتشغيل جهاز الحاسوب، نضغط أولاً على زر التشغيل في وحدة النظام، ثم نضغط على زر تشغيل الشاشة.",
+            terms: ["زر التشغيل (Power Button)", "وحدة النظام", "الشاشة"],
+            info: "الترتيب الصحيح يجعل حاسوبك يعمل بسرعة وبأمان!",
+            meshType: "sphere",
+            targetWords: ["زر التشغيل", "تشغيل الشاشة", "وحدة النظام"],
+            otherWords: ["إغلاق", "إيقاف", "نوم"],
+            question: {
+                text: "ما الخطوة الأولى الصحيحة لتشغيل الحاسوب؟",
+                options: [
+                    { text: "الضغط على زر التشغيل في وحدة النظام", correct: true },
+                    { text: "فصل الأسلاك من الجدار", correct: false },
+                    { text: "الضغط على الطابعة", correct: false }
+                ],
+                explanation: "بدء التشغيل يكون دائماً بالضغط على زر الطاقة بوحدة النظام أولاً."
+            }
+        },
+        {
+            id: 4,
+            title: "إيقاف تشغيل جهاز الحاسوب",
+            explain: "لإيقاف تشغيل الحاسوب بأمان: نضغط على زر ابدأ (Start) ثم زر الطاقة ونختار إيقاف التشغيل (Shut down).",
+            terms: ["قائمة ابدأ (Start)", "إيقاف التشغيل (Shut down)"],
+            info: "إيقاف التشغيل الصحيح يحمي ملفات الحاسوب من الضرر!",
+            meshType: "torus",
+            targetWords: ["قائمة ابدأ", "Shut down", "إيقاف التشغيل"],
+            otherWords: ["تشغيل", "فتح", "تكبير"],
+            question: {
+                text: "كيف نوقف تشغيل الحاسوب بطريقة آمنة وصحيحة؟",
+                options: [
+                    { text: "عبر قائمة (ابدأ Start) ثم اختيار (إيقاف التشغيل Shut down)", correct: true },
+                    { text: "بسحب السلك من الكهرباء مباشرة", correct: false },
+                    { text: "بإغلاق الشاشة فقط وترك وحدة النظام تعمل", correct: false }
+                ],
+                explanation: "الطريقة النظامية الصحيحة لإيقاف تشغيل الأجهزة هي عبر أمر Shut down في القائمة."
+            }
+        },
+        {
+            id: 5,
+            title: "إرشادات الأمن والسلامة",
+            explain: "في معمل الحاسوب: نحافظ على نظافة المكان، ولا نأكل أو نشرب بالقرب من الأجهزة، ونحذر عند التعامل مع الأسلاك.",
+            terms: ["النظافة", "تجنب المأكولات", "الحذر من الأسلاك"],
+            info: "الحفاظ على سلامة المعمل واجبنا ليبقى حاسوبنا يعمل دائماً بنجاح!",
+            meshType: "cone",
+            targetWords: ["نظافة المعمل", "الحذر من الأسلاك", "عدم الأكل"],
+            otherWords: ["عصير قرب الشاشة", "سكب الماء", "اللعب بالأسلاك"],
+            question: {
+                text: "ما التصرف الصحيح والسليم داخل معمل الحاسوب؟",
+                options: [
+                    { text: "المحافظة على نظافة الحاسوب وعدم تناول الطعام قربه", correct: true },
+                    { text: "وضع العصائر والأطعمة على طاولة الحاسوب", correct: false },
+                    { text: "الشد واللعب بأسلاك التوصيل", correct: false }
+                ],
+                explanation: "المحافظة على نظافة الأجهزة والابتعاد عن السوائل والأسلاك يضمن سلامتك وسلامة الحاسوب."
+            }
+        }
+    ]
+};
+
+/* ==========================================
+   المحرك الرئيسي للعبة (Game Engine)
+   ========================================== */
+class ComputerGame {
+    constructor() {
+        this.currentStationIdx = 0;
+        this.score = 0;
+        this.stationStars = [];
+        this.wrongAnswers = [];
+        this.challengeTimer = null;
+        this.challengeScore = 0;
+        
+        // Three.js 
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.currentMesh = null;
+
+        this.initThree();
+    }
+
+    /* تهيئة Three.js للأشكال ثلاثية الأبعاد */
+    initThree() {
+        const container = document.getElementById('visual-box');
+        const canvas = document.getElementById('three-canvas');
+        
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        this.camera.position.z = 4;
+
+        this.renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+        this.renderer.setSize(container.clientWidth, container.clientHeight);
+
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(2, 2, 5).normalize();
+        this.scene.add(light);
+        this.scene.add(new THREE.AmbientLight(0x404040));
+
+        this.animateThree();
+    }
+
+    animateThree() {
+        requestAnimationFrame(() => this.animateThree());
+        if (this.currentMesh) {
+            this.currentMesh.rotation.x += 0.01;
+            this.currentMesh.rotation.y += 0.01;
+        }
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    updateMesh(type) {
+        if (this.currentMesh) this.scene.remove(this.currentMesh);
+
+        let geometry;
+        const material = new THREE.MeshStandardMaterial({ color: 0x5fd4e8, wireframe: false, roughness: 0.3 });
+
+        switch(type) {
+            case 'box': geometry = new THREE.BoxGeometry(1.5, 1.2, 1.2); break;
+            case 'cylinder': geometry = new THREE.CylinderGeometry(0.8, 0.8, 1.5, 16); break;
+            case 'sphere': geometry = new THREE.SphereGeometry(1, 16, 16); break;
+            case 'torus': geometry = new THREE.TorusGeometry(0.9, 0.3, 12, 24); break;
+            default: geometry = new THREE.ConeGeometry(1, 1.5, 16); break;
+        }
+
+        this.currentMesh = new THREE.Mesh(geometry, material);
+        this.scene.add(this.currentMesh);
+    }
+
+    showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    updateHeader() {
+        document.getElementById('top-score').innerText = this.score;
+        if (this.currentStationIdx < LESSON_DATA.stations.length) {
+            document.getElementById('top-station-label').innerText = `المحطة ${this.currentStationIdx + 1} من ${LESSON_DATA.stations.length}`;
+        } else {
+            document.getElementById('top-station-label').innerText = `التحدي النهائي`;
+        }
+    }
+
+    startLesson() {
+        this.currentStationIdx = 0;
+        this.score = 0;
+        this.stationStars = [];
+        this.wrongAnswers = [];
+        this.loadStation();
+    }
+
+    loadStation() {
+        const st = LESSON_DATA.stations[this.currentStationIdx];
+        this.updateHeader();
+
+        // 1. شاشة الشرح
+        document.getElementById('explain-title').innerText = st.title;
+        document.getElementById('explain-text').innerText = st.explain;
+        document.getElementById('info-text').innerText = st.info;
+
+        const termsContainer = document.getElementById('terms-box');
+        termsContainer.innerHTML = st.terms.map(t => `<span class="term-badge">${t}</span>`).join('');
+
+        this.updateMesh(st.meshType);
+        this.showScreen('screen-explain');
+    }
+
+    /* 2ب. تحدي السرعة */
+    goToChallenge() {
+        this.showScreen('screen-challenge');
+        const st = LESSON_DATA.stations[this.currentStationIdx];
+        const catchArea = document.getElementById('catch-area');
+        catchArea.innerHTML = '';
+
+        this.challengeScore = 0;
+        document.getElementById('challenge-score-val').innerText = '0';
+        document.getElementById('btn-skip-challenge').style.display = 'none';
+
+        let timeLeft = 12;
+        document.getElementById('timer-val').innerText = timeLeft;
+
+        // دمج الكلمات
+        const allWords = [
+            ...st.targetWords.map(w => ({ text: w, target: true })),
+            ...st.otherWords.map(w => ({ text: w, target: false }))
+        ].sort(() => Math.random() - 0.5);
+
+        let spawned = 0;
+        const interval = setInterval(() => {
+            if (spawned < allWords.length) {
+                this.spawnFallingItem(allWords[spawned]);
+                spawned++;
+            }
+        }, 1000);
+
+        this.challengeTimer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer-val').innerText = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(this.challengeTimer);
+                clearInterval(interval);
+                document.getElementById('btn-skip-challenge').style.display = 'block';
+            }
+        }, 1000);
+    }
+
+    spawnFallingItem(item) {
+        const area = document.getElementById('catch-area');
+        const el = document.createElement('div');
+        el.className = 'falling-item';
+        el.innerText = item.text;
+        
+        const posX = Math.random() * (area.clientWidth - 100);
+        el.style.left = `${Math.max(10, posX)}px`;
+        el.style.top = '0px';
+
+        el.onclick = () => {
+            if (item.target) {
+                this.challengeScore += 10;
+                this.score += 10;
+                el.style.borderColor = 'var(--green)';
+                el.style.background = 'rgba(79, 216, 138, 0.3)';
+            } else {
+                this.challengeScore = Math.max(0, this.challengeScore - 5);
+                this.score = Math.max(0, this.score - 5);
+                el.style.borderColor = 'var(--red)';
+                el.style.background = 'rgba(239, 90, 111, 0.3)';
+            }
+            document.getElementById('challenge-score-val').innerText = this.challengeScore;
+            this.updateHeader();
+            setTimeout(() => el.remove(), 200);
+        };
+
+        area.appendChild(el);
+
+        let top = 0;
+        const anim = setInterval(() => {
+            top += 2;
+            el.style.top = `${top}px`;
+            if (top > area.clientHeight - 40) {
+                clearInterval(anim);
+                if (el.parentNode) el.remove();
+            }
+        }, 30);
+    }
+
+    /* 2ج. الأسئلة */
+    goToQuestion() {
+        if (this.challengeTimer) clearInterval(this.challengeTimer);
+        this.showScreen('screen-question');
+        
+        const st = LESSON_DATA.stations[this.currentStationIdx];
+        const q = st.question;
+
+        document.getElementById('question-text').innerText = q.text;
+        const optionsBox = document.getElementById('options-box');
+        const feedbackBox = document.getElementById('question-feedback');
+        
+        feedbackBox.style.display = 'none';
+        document.getElementById('btn-next-question').style.display = 'none';
+        optionsBox.innerHTML = '';
+
+        // ترتيب الخيارات عشوائياً
+        const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt.text;
+            btn.onclick = () => this.handleAnswer(btn, opt, q);
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    handleAnswer(selectedBtn, option, question) {
+        const allBtns = document.querySelectorAll('#options-box .option-btn');
+        allBtns.forEach(b => b.disabled = true);
+
+        const feedbackBox = document.getElementById('question-feedback');
+        feedbackBox.style.display = 'block';
+
+        if (option.correct) {
+            selectedBtn.classList.add('correct');
+            feedbackBox.className = 'feedback-box correct';
+            feedbackBox.innerText = '✨ إجابة صحيحة وممتازة! ' + question.explanation;
+            this.score += 20;
+            this.lastQuestionCorrect = true;
+        } else {
+            selectedBtn.classList.add('wrong');
+            feedbackBox.className = 'feedback-box wrong';
+            feedbackBox.innerText = '❌ إجابة تحتاج مراجعة! ' + question.explanation;
+            this.lastQuestionCorrect = false;
+            
+            // تسجيل السؤال الخاطئ للمراجعة
+            this.wrongAnswers.push({
+                stationTitle: LESSON_DATA.stations[this.currentStationIdx].title,
+                questionText: question.text,
+                explanation: question.explanation
+            });
+        }
+        
+        this.updateHeader();
+        document.getElementById('btn-next-question').style.display = 'block';
+    }
+
+    /* 2د. نتيجة المحطة */
+    finishStation() {
+        this.showScreen('screen-station-result');
+        
+        let stars = 1;
+        if (this.challengeScore >= 10 && this.lastQuestionCorrect) stars = 3;
+        else if (this.challengeScore >= 5 || this.lastQuestionCorrect) stars = 2;
+
+        this.stationStars.push(stars);
+
+        const starsStr = '⭐'.repeat(stars);
+        document.getElementById('stars-box').innerText = starsStr;
+        document.getElementById('station-result-summary').innerText = 
+            `حصلت على ${stars} نجوم في محطة (${LESSON_DATA.stations[this.currentStationIdx].title})!`;
+    }
+
+    nextStation() {
+        this.currentStationIdx++;
+        if (this.currentStationIdx < LESSON_DATA.stations.length) {
+            this.loadStation();
+        } else {
+            this.showFinalChallenge();
+        }
+    }
+
+    /* 3. التحدي الأخير (الموقف الحياتي) */
+    showFinalChallenge() {
+        this.updateHeader();
+        this.showScreen('screen-final-challenge');
+        document.getElementById('scenario-feedback').style.display = 'none';
+        document.getElementById('btn-final-result').style.display = 'none';
+    }
+
+    answerScenario(choice) {
+        const feedback = document.getElementById('scenario-feedback');
+        feedback.style.display = 'block';
+
+        if (choice === 2) {
+            feedback.className = 'feedback-box correct';
+            feedback.innerText = '🌟 اختيارات أسطورية ومثالية! حافظت على سلامتك ونظافة المعمل وقمت بتشغيل الجهاز بالترتيب الصحيح.';
+            this.score += 30;
+        } else if (choice === 1) {
+            feedback.className = 'feedback-box wrong';
+            feedback.innerText = '⚠️️ خيار غير مناسب! تناول الطعام والعصير قرب الحواسيب قد يتلف الأجهزة ويعرضك للخطر.';
+        } else {
+            feedback.className = 'feedback-box wrong';
+            feedback.innerText = '⚠️ خيار خطير جداً! سحب الأسلاك بقوة قد يسبب صدمة كهربائية أو يتلف الوصلات.';
+        }
+
+        this.updateHeader();
+        document.getElementById('btn-final-result').style.display = 'block';
+    }
+
+    /* 4. الشاشة النهائية */
+    showFinalScreen() {
+        this.showScreen('screen-final');
+        document.getElementById('final-total-score').innerText = this.score;
+
+        // الوسام
+        let badgeIcon = '🥉';
+        let badgeTitle = 'وسام المستكشف المبتدئ';
+        if (this.score >= 120) {
+            badgeIcon = '🥇';
+            badgeTitle = 'وسام بطل الحاسوب الذهبي';
+        } else if (this.score >= 80) {
+            badgeIcon = '🥈';
+            badgeTitle = 'وسام المبرمج الفضي';
+        }
+
+        document.getElementById('badge-icon').innerText = badgeIcon;
+        document.getElementById('badge-title').innerText = badgeTitle;
+
+        // قائمة المراجعة
+        const reviewBox = document.getElementById('review-list');
+        if (this.wrongAnswers.length === 0) {
+            reviewBox.innerHTML = '<p style="color: var(--green);">🎉 أداء مذهل! أجبت على جميع الأسئلة بصورة صحيحة بدون أي أخطاء.</p>';
+        } else {
+            reviewBox.innerHTML = this.wrongAnswers.map(item => `
+                <div style="margin-bottom: 10px; border-bottom: 1px solid var(--panel-border); padding-bottom: 6px;">
+                    <strong style="color: var(--gold);">${item.stationTitle}:</strong> ${item.questionText}<br>
+                    <span style="color: var(--cyan);">💡 الشرح الصحيح: ${item.explanation}</span>
+                </div>
+            `).join('');
+        }
+
+        // حفظ النتيجة في localStorage مع try/catch
+        try {
+            const lastBest = localStorage.getItem('computer_game_high_score') || 0;
+            if (this.score > lastBest) {
+                localStorage.setItem('computer_game_high_score', this.score);
+            }
+        } catch (e) {
+            console.log('تعذر الحفظ في localStorage:', e);
+        }
+    }
+
+    restartGame() {
+        this.startLesson();
+    }
+}
+
+// بدء التشغيل
+let game;
+window.onload = () => {
+    game = new ComputerGame();
+};
+</script>
+</body>
+</html>
